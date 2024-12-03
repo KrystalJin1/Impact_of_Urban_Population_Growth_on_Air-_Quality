@@ -1,0 +1,385 @@
+---
+title: "The Impact of Urban Population Growth on Air Quality in China from 1960 to 2018."
+author: 
+  - Jin Zhang
+date: today
+date-format: long
+abstract: "This paper examines the relationship between urban population growth and air quality in China. The study focuses on how a 10% increase in urban population percentage could influence PM2.5 levels. Using an Ordinary Least Squares (OLS) regression model, we first estimate the elasticity between urbanization and CO2 emissions. We then use this elasticity to predict the effect on PM2.5 concentration. Our findings show that a 10% increase in urbanization results in a 17.13% rise in CO2 emissions, which subsequently leads to increased PM2.5 levels. The study also provides policy recommendations to mitigate the negative impact of urban growth on air quality."
+format: pdf
+number-sections: true
+bibliography: references.bib
+---
+
+```{r}
+#| include: false
+#| warning: false
+#| message: false
+
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(here)
+```
+
+
+# Introduction
+
+This research aims to explore the impact of urban population growth on air quality, with a specific focus on PM2.5 concentrations in China. As urbanization increases, the air quality in cities tends to worsen due to factors like higher energy consumption, increased vehicle emissions, and industrial activity. This study aims to quantify the potential effect of increased urbanization on air pollution, particularly examining how a rise in the percentage of urban population could impact PM2.5 levels.
+
+The research question is: **How does an increase in urban population percentage affect PM2.5 concentrations?** To answer this question, we used historical data and applied an econometric model to determine the relationship between urbanization and emissions. Specifically, we estimated the elasticity between urban population percentage and CO2 emissions per capita. This elasticity helped us predict how an increase in urban population might affect PM2.5 levels.
+
+We conducted the analysis in several parts. First, we identified our research question, which was to understand how urban population growth affects air quality, specifically PM2.5 concentrations. We then gathered historical data from 1960 to 2018, focusing on urban population percentage, CO2 emissions per capita, and GDP per capita for China. The data was cleaned and consolidated into a single CSV file for analysis. This process included removing missing values and ensuring consistency across variables.
+
+Next, we used an Ordinary Least Squares (OLS) regression model to estimate the elasticity of CO2 emissions per capita with respect to urban population percentage. This model included urban population percentage and GDP per capita as key variables. In Part 4, we estimated the model and obtained a key elasticity value. In Part 5, we performed a counterfactual analysis to predict the impact of a 10% increase in urban population percentage by 2030 on CO2 emissions and PM2.5 concentrations. Finally, in Part 6, we interpreted the results and provided policy recommendations to mitigate the negative impacts of urbanization on air quality.
+
+The results indicate that a 10% increase in urban population percentage leads to a 17.13% increase in CO2 emissions per capita. Using this information, we estimated that PM2.5 concentrations would increase from 50 μg/m³ to approximately 58.57 μg/m³. The findings highlight the potential negative consequences of urbanization on air quality and emphasize the need for proactive measures, such as stricter emission standards, subsidies for electric vehicles, and promoting green urban planning.
+
+
+# Data {#sec-data}
+
+## Data Overview
+
+This study uses a panel dataset focused on China from 1960 to 2018, combining data across three main categories: CO2 emissions, urban population percentage, and GDP per capita. The data was sourced from global datasets on Kaggle, and I extracted China-specific information to create a unified dataset for analysis.
+
+## Data Type and Structure
+
+The dataset used in this study is a panel data set. It includes cross-sectional and time-series elements, focusing on China over a long period, from 1960 to 2018. The data was sourced from three separate global datasets on CO2 emissions, urban population percentage, and GDP. I extracted and combined only the China-specific data from each of these datasets to create a unified dataset for analysis.
+
+- **`CO2 Emissions Data`**: Annual CO2 emissions per country, measured in metric tons. I used this dataset to extract emissions data for China.
+- **`Urban Population Percentage`**: Represents the percentage of the population living in urban areas, which helped in understanding the urbanization trend in China.
+- **`GDP Data`**: Contains annual GDP per country from 1999 to 2022, measured in current US dollars.
+
+This allowed me to assess economic growth along with urban and environmental changes.
+The unit of observation in this study is the country-year, where each data point represents China for a particular year. This combined dataset contains observations for 59 years, allowing me to analyze trends and examine how changes in urban population affect CO2 emissions and GDP in China.
+
+## Data Cleaning Process
+The data cleaning process involved several steps to ensure consistency and quality:
+
+Selection and Extraction: We extracted China-specific data from the three global datasets to centralize the analysis on urbanization and pollution in China. The years included range from 1960 to 2018, which captures periods of significant urban and economic growth in China.
+
+Handling Missing Values: Missing values were handled carefully. For years with missing data points, interpolation was performed if feasible; otherwise, missing values were removed to prevent bias in the analysis.
+
+Reshaping Data: The data was reorganized to align all variables horizontally for each year, creating a clean dataset in CSV format that was used in the model estimation. This reshaping ensured that `Urban_percent`, `CO2_per_capita`, and `GDP_Per_Capita` were aligned correctly for each observation year.
+
+Renaming Variables: The variable names were renamed to be more descriptive (e.g., `CO2_per_capita` for CO2 emissions per person). I also added a neighboring column explaining each variable, including its unit (e.g., `Urban_percent` as the percentage of people in urban areas). This made the dataset clearer and easier to interpret for further analysis.
+
+## Variables Used in Analysis
+The explanation of each **Equilibrium Variables** after data cleaning and renaming included in the following:
+
+- **`Urban_percent`**: Percentage of the population living in urban areas. This variable is used as an independent variable to study the effect of urban growth on emissions.
+- **`CO2_per_capita`**: CO2 emissions per capita, measured in metric tons. This is the dependent variable in the model and helps measure the environmental impact relative to population size.
+- **`GDP_Per_Capita`**: Gross Domestic Product per capita, measured in US dollars. This variable is used as an independent variable to examine the relationship between economic activity and emissions.
+
+**Control Variables**:
+**`Year`**: The year of observation is included as a control to account for differences over time, such as changes in technology, policies, or other factors affecting emissions.
+
+## Exploratory Data Analysis
+
+```{r}
+#| label: fig-Urban-CO2
+#| fig-cap: "Relationship Between Urban Population Percentage and CO2 Emissions per Capita "
+#| echo: false
+#| warning: false
+#| message: false
+
+# Load the cleaned dataset
+data <- read.csv(here("data", "02-analysis_data", "Cleaned_data.csv"))
+
+# Plotting Urban Population Percentage vs CO2 Emissions per Capita
+ggplot(data, aes(x = Urban_percent, y = CO2_per_capita)) +
+  geom_point(color = "blue", alpha = 0.7) +  # Scatter plot to show individual data points
+  geom_smooth(method = "lm", color = "red", se = TRUE) +  # Adding a trend line using linear regression
+  labs(
+    x = "Urban Population Percentage (%)",
+    y = "CO2 Emissions per Capita (metric tons)"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12)
+  )
+
+```
+@fig-Urban-CO2 shows the relationship between urban population percentage and CO2 emissions per capita. The scatter plot uses blue points to represent data from 1960 to 2018 in China. The trend line, in red, suggests a positive linear relationship between urban population percentage and CO2 emissions per capita, indicating that as the urban population increases, CO2 emissions tend to rise. The shaded area around the trend line represents the confidence interval, demonstrating the variability around the trend. This plot supports the idea that urbanization significantly contributes to higher levels of CO2 emissions.
+
+# Model
+
+## Log-Linear Model
+The model I am using is a log-linear regression model that is specified as:
+
+\begin{align}
+\ln(\text{CO2}_{t}) = \alpha + \beta \cdot \ln(\text{Urban}_{t}) + \epsilon_{t}
+\end{align}
+
+Where:
+
+*$\ln(\text{CO2}_{t})$*: Natural logarithm of CO2 emissions per capita in China at time $t$.Emissions are measured in metric tons per capita.
+
+*$\ln(\text{Urban}_{t})$*: Represents the percentage of the population living in urban areas in logarithmic form. It serves as the primary independent variable in this model.
+
+**$\alpha$**: The intercept of the regression. It represents the estimated value of CO2 emissions when the urban population percentage is hypothetically zero. Though not realistic, it serves as a theoretical baseline.
+
+*$\beta$*: This is the **key elasticity** of interest. It tells us how CO2 emissions respond to a change in urban population percentage. If $\beta > 0$, more urbanization leads to more emissions. A \(\beta = 1.71\), for example, means a 1% increase in urbanization results in a 1.71% increase in CO2 emissions.
+
+*$\epsilon_{t}$*: This is the error for time $t$. It captures other factors affect CO2 emissions in China, such as technological changes or government policies not explicitly included in the model.
+
+This model is focused on the **environmental economics market** in China. Specifically, it examines how urbanization influences environmental impacts, particularly CO2 emissions. In addition,this model is designed to capture **long-run responses**. Urban growth and its effect on the environment happen gradually over decades. Therefore, a long-run model helps capture these cumulative effects.The key shock analyzed in this model is a **10% increase in urban population percentage** within a short period (e.g., within a few years). This shock helps measure the elasticity of CO2 emissions, isolating how emissions react specifically to increased urbanization.In this model, **economic policies** and **environmental regulations** are assumed to be constant. 
+
+The data requirements for this model include **annual data** on CO2 emissions, urban population percentage, and other control variables over several decades. **Panel data** (country-year level) is used to capture trends and effects over time. Additional cross-sectional data across provinces would also be helpful to compare how different areas are affected by urbanization. The model assumes data is reported accurately and consistently over time, without major gaps, ensuring robust estimation of relationships.
+
+
+# Estimation
+
+## Model Overview
+The primary focus of this study is to understand the relationship between urbanization and carbon dioxide (CO2) emissions per capita. To do so, we employed an Ordinary Least Squares (OLS) regression model to estimate key elasticities between the urban population percentage and CO2 emissions. This type of linear regression model helps quantify the impact of urban growth on emissions by controlling for other variables, such as economic activity.
+
+The analysis involved four different models, each progressively adding complexity to better understand the nuances of the relationship. In Models 1 and 2, we used the original linear forms of the variables, while Models 3 and 4 incorporated logarithmic transformations to interpret coefficients as elasticities, which makes it easier to understand changes in percentages.
+
+
+## Model set-up
+
+Below are the formulas for the four models used in the analysis:
+
+1. **Model 1**:  \begin{align} CO2\_per\_capita &= \beta_0 + \beta_1 Urban\_percent + \epsilon \end{align}
+
+2. **Model 2**:  \begin{align} CO2\_per\_capita = \beta_0 + \beta_1 Urban\_percent + \beta_2 GDP\_Per\_Capita + \epsilon \end{align}
+   
+3. **Model 3**:  \begin{align} \log(CO2\_per\_capita) = \beta_0 + \beta_1 \log(Urban\_percent) + \epsilon \end{align}
+
+4. **Model 4**:  \begin{align} \log(CO2\_per\_capita) = \beta_0 + \beta_1 \log(Urban\_percent) + \beta_2\log(GDP\_Per\_Capita) + \epsilon \end{align}
+
+
+**Dependent Variable**: CO2 Emissions per capita (`log_CO2_per_capita`). This variable serves as the dependent variable across all models, quantifying CO2 emissions normalized to population size, thus providing a measure of the environmental impact relative to population.
+
+**Key Regressor**: Percentage of Urban Population (`log_Urban_percent`). This is the main variable of interest. Its coefficient is used to estimate how urbanization affects CO2 emissions per capita, giving us a sense of the elasticity between these factors.
+
+**Transformation of Variables**:
+  - Models 1 and 2 used the original values of `Urban_percent`, `GDP_Per_Capita`, and `CO2_per_capita`.
+  - Models 3 and 4 log-transformed both the dependent and independent variables (`log_CO2_per_capita` and `log_Urban_percent`). This approach helps linearize the relationship and allows the coefficients to be interpreted as elasticities, representing percentage changes in response to percentage changes.
+
+**Control Variables**: Gross Domestic Product per capita (`log_GDP_per_capita`) is included as a control variable in Models 2 and 4. This control captures the influence of economic activity on emissions, independent of urbanization.
+
+## Assumptions for OLS Estimation:
+- **Linearity**: Relationship between the log-transformed variables is assumed to be linear.
+- **Independence**: Observations are assumed to be independent across time.
+- **Homoscedasticity**: The error terms have constant variance across all levels of independent variables.
+- **No Multicollinearity**: There is a high degree of independence between the explanatory variables.
+- **Exogeneity**: The percentage of urban population (`Urban_percent`) is assumed to be uncorrelated with the error terms.
+
+## Instrumental Variables
+**1. Ideal Instrumental Variables Design**:
+
+The ideal instrumental variable for urbanization should affect urban population growth but not directly influence CO2 emissions. For example, historical policies that promote urban development could work as an instrument. Geographic features that determine where people settle could also be used. The key point is that the instrument must be related to urbanization but should not directly impact CO2 emissions except through urbanization.
+
+**2. Several assumptions need to be true for OLS to provide accurate estimates**:
+
+No Endogeneity: The independent variables must not be correlated with the error term. Urbanization and GDP should only affect CO2 emissions directly. There should not be unobserved factors that influence both CO2 emissions and urbanization.
+Exogeneity of Instrument: If using an instrumental variable (IV) approach, the instrument must affect CO2 emissions per capita only through urbanization. It should not have a direct impact on CO2 emissions.
+Relevance: The instrument must be strongly correlated with urbanization. This means it needs to be effective in explaining changes in urban population growth.
+
+**3. Impact if Assumptions Do Not Hold**:
+
+If these assumptions do not hold, the OLS estimates might be biased. For example, there could be variables that are not included in the model that affect both urbanization and CO2 emissions. This would make the estimated coefficient for urbanization incorrect. Also, if the chosen instrument is weak or if it directly affects CO2 emissions, the IV estimates will also be biased. This means the model could give wrong information about the relationship between urbanization and emissions. As a result, any policy recommendations based on this model could be flawed.
+
+
+# Results
+## Coefficients and Standard Errors
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+# Load knitr and kableExtra
+#install.packages("knitr")
+#install.packages("kableExtra")
+library(knitr)
+library(kableExtra)
+
+# Create a summary data frame of regression results
+summary_df <- data.frame(
+  Variable = c("Intercept", "Urban_Percentage", "GDP_Per_Capita", "Log_Urban_Percentage", "Log_GDP_Per_Capita", 
+               "R squared", "Adj R squared", "F statistic"),
+  Model_1 = c("-1.95 (0.16) ***", "0.16 (0.00) ***", "", "", "", 0.95, 0.95, 1030.72),
+  Model_2 = c("-0.96 (0.19) ***", "0.11 (0.01) ***", "0.00 (0.00) ***", "", "", 0.97, 0.97, 918.23),
+  Model_3 = c("-4.94 (0.23) ***", "", "", "1.71 (0.07) ***", "", 0.91, 0.91, 597.27),
+  Model_4 = c("-2.39 (0.47) ***", "", "", "0.04 (0.29)", "0.48 (0.08) ***", 0.95, 0.94, 492.84)
+)
+
+# Display using kable with formatting
+kable(summary_df, caption = "Regression Models Summary", align = c("l", "c", "c", "c", "c")) %>%
+  kable_styling(full_width = F, position = "center", font_size = 10) %>%  # Reduce font size for a more compact look
+  row_spec(0, bold = T) %>%
+  column_spec(1, bold = T) %>%
+  column_spec(4:5, width = "2cm") %>%  # Set a fixed width to make columns narrower
+  footnote(general = "*** p < 0.01; ** p < 0.05; * p < 0.1", general_title = "Significance Levels: ")
+
+
+```
+
+
+**Intercept (constant)**: The intercepts across models are all statistically significant, with p-values close to zero. The negative values suggest that, hypothetically, when urbanization and GDP are zero, CO2 emissions per capita would approach these negative intercept values. However, this scenario is theoretical and not practically meaningful.The standard errors for the intercepts range from 0.1624 to 0.4700, indicating the level of uncertainty around the intercept estimates. The relatively small standard errors provide confidence in the precision of these estimates.
+
+**Urban_percent / log_Urban_percent**:
+This coefficient is important as it represents the elasticity of CO2 emissions per capita with respect to urban population percentage. In Model 1, the coefficient for Urban_percent is 0.1572, with a standard error of 0.0049, indicating that a 1% increase in urban population percentage is associated with a 0.1572 metric tons increase in CO2 emissions per capita. In the log-log Models 3 and 4, the coefficient of log_Urban_percent is 1.7130 (Model 3, standard error 0.0701) and 0.0396 (Model 4, standard error 0.2893). This means that a 1% increase in urban population percentage is associated with approximately a 1.713% increase in CO2 emissions per capita in Model 3, whereas the effect is much smaller in Model 4 after controlling for log_GDP_Per_Capita. The relatively low standard errors for log_Urban_percent in Model 3 suggest a precise estimate, while the higher standard error in Model 4 indicates greater uncertainty in the presence of additional controls.
+
+**GDP_Per_Capita / log_GDP_Per_Capita**:
+In Model 2, GDP_Per_Capita has a positive and statistically significant coefficient (0.0003) with a very small standard error (0.0000), indicating that higher economic output is associated with increased emissions. In Model 4, log_GDP_Per_Capita also shows a positive and significant relationship (0.4829, standard error 0.0819), indicating that economic growth contributes to higher emissions. The low standard errors in both cases suggest precise estimates for the effect of GDP on emissions.
+
+## Model Summary
+
+**R-squared**: The R-squared values for the models ranged from 0.913 to 0.970, indicating that a large proportion of the variance in CO2 emissions per capita is explained by the independent variables. Model 2, which includes both Urban_percent and GDP_Per_Capita, has the highest R-squared (0.9704), suggesting that including economic output significantly improves the explanatory power of the model.
+**Adjusted R-squared**: The adjusted R-squared values are similarly high, ranging from 0.911 to 0.9694, confirming the strong fit of the models even after adjusting for the number of predictors.
+**F-statistic**: The F-statistics for the models are quite high, with corresponding Prob (F-statistic) values close to zero, strongly rejecting the null hypothesis that none of the explanatory variables have an effect on the dependent variable.
+
+# Counterfactual Analysis
+In this report, we will estimate how urban population growth might affect PM2.5 levels in China. We will use a counterfactual analysis to make these estimates. In Part 4, we used an Ordinary Least Squares (OLS) regression model to find the elasticity of CO2 emissions per capita concerning urban population percentage. In this part, we will use this elasticity to predict how rising urbanization could impact PM2.5, which is often linked to CO2 emissions. We start by defining the key shock in this analysis. We assume a 10% increase in urban population percentage by 2030. This assumption is based on urban growth projections in China. These projections are driven by the trend of people moving from rural to urban areas, as well as government policies promoting urbanization. This expected increase is consistent with the trend we have seen in recent years, making it a suitable estimate for this analysis.
+
+## Predict the CO2 Emissions and PM2.5 Concentration：
+
+From the OLS regression analysis in Part 4, the estimated elasticity for log_Urban_percent was 1.713. This value tells us that a 1% increase in the urban population percentage results in a 1.713% increase in CO2 emissions per capita. Using this elasticity, we can predict the effect of a 10% increase in urban population percentage on CO2 emissions: This means that a 10% increase in the urban population percentage is expected to lead to a 17.13% increase in CO2 emissions per capita.
+
+For Point Estimate for PM2.5, we assume that the 17.13% increase in CO2 emissions will lead to a similar increase in PM2.5 concentration. If the initial PM2.5 concentration in urban areas is 50 μg/m³, then a 17.13% increase would result in a 58.57 μg/m³ PM2.5 concentration. In the best-case scenario, we assume that mitigation measures like stricter emissions regulations could reduce the increase in PM2.5 to 10%, leading to a concentration of 55 μg/m³.In the worst-case scenario, with no mitigation, the PM2.5 concentration could increase by 20%, leading to 60 μg/m³.
+
+## Documentation of Assumptions and Sources:
+Urban Population Projections: We assumed a 10% increase in urban population percentage by 2030. This number comes from urban planning studies in China. The studies predict continued urban growth because of migration from rural areas and supportive government policies.
+
+Elasticity of CO2 Emissions: The elasticity value we used is 1.713. It means that if urban population percentage grows by 1%, CO2 emissions per capita will increase by 1.713%. We obtained this elasticity by analyzing data from 1960 to 2020. The regression model from Part 4 helped us understand how CO2 emissions have changed in response to urbanization over this period.
+
+Relationship Between CO2 and PM2.5: We assumed a correlation between CO2 emissions and PM2.5 concentrations. Previous studies have shown that higher CO2 emissions are often accompanied by increased PM2.5 levels. Both pollutants mainly come from similar sources, like factories, cars, and power plants.
+
+## Assumptions and Limitations:
+**Linearity Assumption**: We assumed that the relationship between CO2 emissions and PM2.5 is linear. This means we expect the same percentage increase in PM2.5 for every increase in CO2. In reality, this relationship might change, especially at very high emission levels. 
+
+**External Factors**: Our analysis does not consider changes in external factors like government policies or new technologies that could reduce pollution. For instance, if China implements stricter emissions standards, the increase in PM2.5 that we predicted may not happen, or it could be smaller.
+
+**Isolated Impact**: We assumed that the urban population increase is the only major factor affecting CO2 and PM2.5 levels. Other factors, such as industrial growth or changes in energy sources (like using more renewable energy), might also affect pollution.
+
+**Uncertainty of Estimates**: There is some uncertainty in the numbers we used. The elasticity and urban growth rate are based on past data and trends, which may not exactly represent future conditions. Unexpected events, such as economic downturns or natural disasters, could impact urban growth and pollution levels, affecting the accuracy of our results.
+
+**Time Scale and What is Constant**: This analysis looks at the long-term impact of urban population growth up to 2030. We assumed that key factors like emissions control policies and energy use patterns remain constant.
+
+
+# Discussion and Conclusion
+
+## Reporting the Results
+In this project, I studied how urban population growth affects air quality. I use an example to estimate the impact of a 10% increase in urban population percentage on PM2.5 concentration. Firstly, I used the elasticity between urbanization and CO2 emissions to make this prediction. According to the regression result, the key elasticity shows that a 10% increase in urbanization leads to a 17.13% increase in CO2 emissions per capita. I then estimated that this rise in CO2 emissions would cause PM2.5 concentration to grow from 50 μg/m³ to about 58.57 μg/m³. If no action is taken by the government, there is likely to be an increase of up to 60μg/m.
+
+This result only shows one part of the effect: how urban growth influences PM2.5 through increased CO2 emissions. I am making a hypothetical prediction about the future, for the year 2030. The response I describe is a long-term impact, considering how emissions might grow as cities expand.
+
+## Discussing the Results
+I am confident in these results, but some limitations should be discussed. The main assumptions that affected the results are:
+
+**Linear Relationship**: I assumed a linear relationship between CO2 emissions and PM2.5 levels. In real life, the relationship might not be linear, especially at high emissions levels. This assumption could lead to errors in the estimated impact's size.
+
+**No Policy or Technological Changes**: I assumed there would be no new policies or technological advances that reduce CO2 or PM2.5 emissions until 2030. If stricter regulations or cleaner technologies are adopted, the effect on PM2.5 might be smaller.
+
+**Urban Population as the Only Factor**: I assumed that urban population growth is the main driver of increased emissions and air pollution. Other factors, like industrial growth or changes in energy sources, could also affect emissions, which I did not include in the model.
+
+**Limited Data**: The data used in this analysis only covers the period from 1960 to 2018. This limited data might not fully capture recent trends or changes in urbanization and pollution. For example, new technologies, changing energy policies, or shifts in economic conditions after 2018 could change the relationship between urbanization and pollution. The lack of recent data might make the estimates less reliable for predicting future trends.
+
+If I had more time, data, or resources, I would first try to find more detailed data. I would include more variables like economic growth and energy consumption patterns to make a more powerful model. The current results seem reasonable because urban growth usually leads to more pollution. However, the exact size of the impact is uncertain. I am more confident about the "direction' of the effect (that emissions and PM2.5 will rise) than the exact numbers.
+
+## Policy Recommendation
+If a policymaker asked me, **"How should we handle the air quality impact of increasing urbanization?"**, I would recommend the following:
+
+**Stricter Emission Standards**: The government should enforce stricter emission standards for vehicles, factories, and power plants. The government could also implement vehicle restrictions, as cars are a major source of PM2.5 emissions. Additionally, subsidies for electric vehicles can encourage people to switch from traditional cars to cleaner options. This will help reduce PM2.5 levels as urban growth leads to more emissions. Stricter standards can be a direct requirement that limits pollution.
+
+**Green Urban Planning**: Urban planning should include more “green spaces” and promote public transportation. The government should also increase green initiatives such as tree-planting campaigns and create more public parks, encouraging community participation in these efforts. Adding green areas can help reduce air pollution. Encouraging the use of public transportation and clean energy will also lower emissions.
+
+**Tax Incentives and Subsidies**: The government should offer tax incentives for companies that reduce emissions and subsidies for green energy use. Transfers like these can encourage behavior that helps the environment, such as retrofitting buildings for energy efficiency.
+
+**Public Awareness and Education**: Providing education about air quality and its health effects is important. Many people do not know how their actions affect the environment. Information campaigns and nudges can help people make better choices, like using public transport or reducing energy use.
+These policy actions are necessary to reduce the negative effects of urban population growth on air quality. Even though the exact numbers are uncertain, the trend is clear. Urbanization will lead to more emissions and higher PM2.5 levels. Taking action now is very important to protect environmental health.
+
+
+# Extension
+
+## Introduction
+In this extension, I wanted to see how urban population changes affect CO2 emissions differently in the short run compared to the long run. To do this, I used a **first differences approach**, which looks at year-to-year changes to understand the short-term effects. Instead of using all 40 years of data, I selected the recent five year in our data (2014-2018) to focus on these short-term changes and better capture the immediate impact of urbanization on emissions.
+
+## Methodology
+For this analysis, I used a **first-differencing method**, which calculates the difference in each variable from one year to the next. This helps to focus on how changes in urban population affect CO2 emissions right away, rather than over many years. The model used for this is:
+
+
+\begin{align}
+\Delta CO2_{t} = \alpha + \beta_1 \Delta Urban\_percent_{t} + \beta_2 \Delta GDP\_Per\_Capita_{t} + \epsilon_{t}
+\end{align}
+
+Where:
+
+- $\Delta CO2_{t}$: The change in CO2 emissions per capita at time $t$.
+- $\Delta Urban\_percent_{t}$: The change in the urban population percentage from the previous year to time $t$.
+- $\Delta GDP\_Per\_Capita_{t}$: Change in GDP per capita from the previous year to time $t$.
+- $\epsilon_{t}$: The error term at time $t$.
+
+The first differences approach captures how emissions change immediately when urbanization and economic activity change, without being affected by long-term trends.
+
+## Results
+
+The regression results for the short-run model are summarized as follows:
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+# Load knitr and kableExtra
+#install.packages("knitr")
+#install.packages("kableExtra")
+library(knitr)
+library(kableExtra)
+
+# Create a summary data frame for the First Differences Regression results
+first_diff_summary <- data.frame(
+  Term = c("Intercept", "Urban Percentage (Difference)", "GDP Per Capita (Difference)", 
+           "R squared", "Adj R squared", "F statistic"),
+  Estimate = c(3.5684, -2.9468, 0.0001, 0.8916, 0.6748, 4.1120),
+  Std_Error = c(5.2224, 4.1814, 0.0002, "", "", ""),
+  t_value = c(0.683, -0.705, 0.620, "", "", ""),
+  p_value = c(0.618, 0.609, 0.647, "", "", 0.3293)
+)
+
+# Display using kable with formatting
+kable(first_diff_summary, caption = "First Differences Regression Summary", align = c("l", "c", "c", "c", "c")) %>%
+  kable_styling(full_width = F, position = "center", font_size = 11) %>%
+  row_spec(0, bold = T) %>%
+  column_spec(1, bold = T)
+
+```
+**Intercept**: The estimate for the intercept is $3.568$, with a p-value of $0.618$. This means that the baseline change in emissions is not statistically significant.
+
+**$\Delta Urban\_percent$**: The coefficient for the change in urban percentage is $-2.947$, with a p-value of $0.609$, meaning that it is not statistically significant. This negative value suggests that increasing urbanization may lead to a decrease in emissions, but since it is not significant, we need to be cautious when interpreting it.
+
+**$\Delta GDP\_Per\_Capita$**: The coefficient estimate is $0.00013$, with a p-value of $0.647$, which also shows no statistical significance. This suggests that changes in GDP per capita do not have a strong short-term effect on CO2 emissions.
+
+**Model Fit**: The R-squared value is $0.892$, which indicates that the model explains a fair amount of the variation in year-over-year emissions changes. However, the adjusted R-squared is $0.675$, and the F-statistic p-value is $0.3293$, which means the overall model is not statistically significant.
+
+## Discussion
+
+The results of this short-run model are different from the long-run findings of the main analysis. The coefficients for changes in urban population and GDP are not significant, suggesting that changes in urbanization and economic activity do not have a clear or consistent effect on CO2 emissions over the short term.
+
+Interestingly, the negative value for the change in urban population ($\Delta Urban\_percent$) is opposite to what we might expect. It is possible that short-term urbanization involves improvements such as new public transportation or temporary relocation of polluting industries, which could reduce emissions in the short term. However, since the results are not statistically significant, we cannot draw strong conclusions.
+
+## Policy Implications
+
+These findings show that we should not assume that short-run and long-run effects of urbanization on emissions are the same. In the long term, urban growth seems to increase CO2 emissions, but in the short term, the effects may not be as straightforward. Policies that aim to manage emissions during periods of rapid urbanization should consider both short-run and long-run impacts. This could involve supporting sustainable infrastructure and clean energy solutions to manage emissions effectively as cities grow.
+
+
+## Policy Implications
+
+These findings show that we should not assume that short-run and long-run effects of urbanization on emissions are the same. In the long term, urban growth seems to increase CO2 emissions, but in the short term, the effects may not be as straightforward. Policies that aim to manage emissions during periods of rapid urbanization should consider both short-run and long-run impacts. This could involve supporting sustainable infrastructure and clean energy solutions to manage emissions effectively as cities grow.
+
+
+\newpage
+
+
+# References
+
+China GDP per capita 1960-2024 (no date a) MacroTrends. Available at: https://www.macrotrends.net/global-metrics/countries/chn/china/gdp-per-capita (Accessed: 02 December 2024). 
+
+
+China GDP per capita 1960-2024 (no date b) MacroTrends. Available at: https://www.macrotrends.net/global-metrics/countries/chn/china/gdp-per-capita (Accessed: 02 December 2024). 
+
+
+Mpwolke (2022) Urban population, Kaggle. Available at: https://www.kaggle.com/code/mpwolke/urban-population/input (Accessed: 02 December 2024). 
+

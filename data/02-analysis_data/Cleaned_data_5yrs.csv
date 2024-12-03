@@ -1,0 +1,11 @@
+﻿China,Urban_percent,CO2_per_capita,GDP_Per_Capita
+2014,54.259,7.252919144,7636
+2015,55.5,7.169112177,8016
+2016,56.736,7.118705414,8094
+2017,57.96,7.225768991,8817
+2018,59.152,7.405211347,9905
+,,,
+,,,
+Urban_percent: Percentage of urban population from total population,,,
+CO2_per_capita: CO2 emissions (metric tons per capita),,,
+GDP_Per_Capita: GDP Per Capita (US $),,,
